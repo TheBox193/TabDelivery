@@ -28,6 +28,9 @@ function uiDuplicate () {
 
 function sendTab(tab, uid) {
 	chrome.storage.sync.get(uid, (store) => {
+		const newStore = _.clone(store);
+
+		// storeGet
 
 		// Check if tab is already inbound (by url)
 		const urls = _.pluck( store[ uid ].tabs.inbound, 'url');

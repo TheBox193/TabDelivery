@@ -33,7 +33,7 @@ function getRandomNickname() {
  * @return {[type]} [description]
  */
 function newIdentity() {
-	const identity = { 'uid': getRandomToken(), 'nickname': getRandomNickname() };
+	const identity = { 'uid': getRandomToken() };
 	chrome.storage.local.set(identity);
 
 	let syncStore = {};
@@ -50,7 +50,10 @@ function newIdentity() {
 chrome.storage.local.get(null, (local) => {
 	if(typeof local.uid !== 'string') {
 		newIdentity();
-	} else {
+	}
+	if (typeof local.name !== 'string') {
+		var d =  { 'nickname': getRandomNickname() };
+		d=d;
 	}
 });
 
