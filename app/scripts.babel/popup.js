@@ -1,20 +1,19 @@
 'use strict';
 const destinationsEl = document.getElementById('destinations');
-let storage = {local:{}, sync: {}};
 
 // eslint hack
 let _ = _;
 
-chrome.storage.local.get(null, (local) => {
-	storage.local = local;
-});
-
 chrome.storage.sync.get(null, (store) => {
-	_.keys(store).forEach( (key) => {
-		let el = document.createElement("option");
-		el.textContent = store[key].name;
-		el.value = key;
-		destinationsEl.appendChild(el);
+	chrome.storage.local.get(null, (local) => {
+		_.keys(store).forEach( (key) => {
+			if (local.uid !== key) {
+				let el = document.createElement('option');
+				el.textContent = store[key].name;
+				el.value = key;
+				destinationsEl.appendChild(el);
+			}
+		});
 	});
 });
 
