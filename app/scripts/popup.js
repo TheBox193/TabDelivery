@@ -1,38 +1,42 @@
 'use strict';
 var destinationsEl = document.getElementById('destinations');
-var storage = { local: {}, sync: {} };
+var myNameEl = document.getElementById('myName');
+var statusEl = document.getElementById('status');
 
 // eslint hack
 var _ = _;
 
-chrome.storage.local.get(null, function (local) {
-	storage.local = local;
-});
-
 chrome.storage.sync.get(null, function (store) {
-	_.keys(store).forEach(function (key) {
-		var el = document.createElement("option");
-		el.textContent = store[key].name;
-		el.value = key;
-		destinationsEl.appendChild(el);
+	chrome.storage.local.get(null, function (local) {
+		_.keys(store).forEach(function (key) {
+			if (local.uid !== key) {
+				var el = document.createElement('option');
+				el.textContent = store[key].name;
+				el.value = key;
+				destinationsEl.appendChild(el);
+			} else {
+				myNameEl.textContent = store[key].name;
+			}
+		});
 	});
 });
 
 function uiSuccess() {
 	console.log('success!');
+	statusEl.textContent = 'Sent!';
 }
 
 function uiDuplicate() {
-	console.log('duplicates');
+	statusEl.textContent = 'Already sent.';
 }
 
 function sendTab(tab, uid) {
 	chrome.storage.sync.get(uid, function (store) {
+		// const newStore = _.clone(store);
 
 		// Check if tab is already inbound (by url)
 		var urls = _.pluck(store[uid].tabs.inbound, 'url');
 		if (_.contains(urls, tab.url)) {
-
 			uiDuplicate();
 		} else {
 
@@ -60,7 +64,7 @@ function handleSendClick() {
 
 document.addEventListener('DOMContentLoaded', function () {
 	var link = document.getElementById('clicking');
-	// onClick's logic below:
+	// onClick's logic
 	link.addEventListener('click', function (ev) {
 		handleSendClick(ev);
 	});

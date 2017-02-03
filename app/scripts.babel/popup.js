@@ -1,5 +1,7 @@
 'use strict';
 const destinationsEl = document.getElementById('destinations');
+const myNameEl = document.getElementById('myName');
+const statusEl = document.getElementById('status');
 
 // eslint hack
 let _ = _;
@@ -12,6 +14,8 @@ chrome.storage.sync.get(null, (store) => {
 				el.textContent = store[key].name;
 				el.value = key;
 				destinationsEl.appendChild(el);
+			} else {
+				myNameEl.textContent = store[key].name;
 			}
 		});
 	});
@@ -20,24 +24,21 @@ chrome.storage.sync.get(null, (store) => {
 
 function uiSuccess () {
 	console.log('success!');
+	statusEl.textContent = 'Sent!';
 }
 
 function uiDuplicate () {
-	console.log('duplicates');
+	statusEl.textContent = 'Already sent.';
 }
 
 function sendTab(tab, uid) {
 	chrome.storage.sync.get(uid, (store) => {
-		const newStore = _.clone(store);
-
-		// storeGet
+		// const newStore = _.clone(store);
 
 		// Check if tab is already inbound (by url)
 		const urls = _.pluck( store[ uid ].tabs.inbound, 'url');
 		if ( _.contains(urls, tab.url) ) {
-
 			uiDuplicate();
-
 		} else {
 
 			const newInbound = _.clone( store[uid].tabs.inbound );
@@ -64,7 +65,7 @@ function handleSendClick () {
 
 document.addEventListener('DOMContentLoaded', () => {
     const link = document.getElementById('clicking');
-    // onClick's logic below:
+    // onClick's logic
     link.addEventListener('click', (ev) => {
         handleSendClick(ev);
     });

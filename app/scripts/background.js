@@ -1,29 +1,7 @@
 'use strict';
 
-var storage = { local: {}, sync: {} };
-
 // eslint hack
 var _ = _;
-
-chrome.runtime.onInstalled.addListener(function (details) {
-	console.log('previousVersion', details.previousVersion);
-
-	// chrome.storage.sync.get('userid', function(items) {
-	//     var userid = items.userid;
-	//     if (userid) {
-	//         useToken(userid);
-	//     } else {
-	//         userid = getRandomToken();
-
-	//         chrome.storage.sync.set({userid: {}}, function() {
-	//             useToken(userid);
-	//         });
-	//     }
-	//     function useToken(userid) {
-	//         // TODO: Use user id for authentication or whatever you want.
-	//     }
-	// });
-});
 
 /**
  * Create a random token to be used
@@ -37,7 +15,6 @@ function getRandomToken() {
 	for (var i = 0; i < randomPool.length; ++i) {
 		hex += randomPool[i].toString(16);
 	}
-	// E.g. db18458e2782b2b77e36769c569e263a53885a9944dd0a861e5064eac16f1a
 	return hex;
 }
 
@@ -51,29 +28,35 @@ function getRandomNickname() {
 	return dict[index];
 }
 
+/**
+ * Creates a new identity for this chrome instance.
+ * @return {[type]} [description]
+ */
 function newIdentity() {
-	var identity = { 'uid': getRandomToken(), 'nickname': getRandomNickname() };
+	var identity = { 'uid': getRandomToken() };
 	chrome.storage.local.set(identity);
 
 	var syncStore = {};
-
 	syncStore[identity.uid] = { 'name': identity.nickname, tabs: { inbound: [] } };
-	debugger;
 	chrome.storage.sync.set(syncStore);
 }
 
-chrome.storage.local.get(['uid', 'nickname'], function (local) {
-	storage.local = local;
+/**
+ * Open single url
+ * @param  {string} url
+ */
+function openTab(url) {
+	// Split off anything after #
+	var tabURL = {
+		url: url.split('#')[0]
+	};
 
-	if (typeof storage.local.uid !== 'string') {
-		newIdentity();
-	} else {}
-});
-
-function check() {
-	chrome.storage.sync.get(storage.local.uid, function (storage) {
-		var urls = storage && storage.inbound ? storage.inbound : [];
-		openTabs(urls);
+	chrome.tabs.query(tabURL, function (tabs) {
+		if (tabs.length) {
+			chrome.tabs.update(tabs[0].id, { selected: true });
+		} else {
+			chrome.tabs.create(tabURL);
+		}
 	});
 }
 
@@ -85,84 +68,49 @@ function openTabs(urls) {
 	urls.map(openTab);
 }
 
-/**
- * Open single url
- * @param  {string} url
- */
-function openTab(url) {
-	var tabURL = {
-		url: url
-	};
-	var tab;
-
-	if (typeof tab !== 'undefined' && (tab.url === '' || tab.url === 'chrome://newtab/' || tab.url === tabURL.url)) {
-		chrome.tabs.update(null, tabURL);
-	} else {
-		chrome.tabs.create(tabURL);
-	}
-}
+// function check() {
+// 	chrome.storage.local.get(null, (local) => {
+// 		chrome.storage.sync.get( local.uid, function(storage) {
+// 			var urls = ( storage && storage.inbound ) ? storage.inbound : [];
+// 			openTabs(urls);
+// 		});
+// 	});
+// }
 
 function removeInboundTabs() {
-	chrome.storage.sync.get(storage.local.uid, function (store) {
-		store[storage.local.uid].tabs.inbound = [];
-		chrome.storage.sync.set(store, function () {
-
-			chrome.storage.sync.get(storage.local.uid, function (store) {
-				console.log('cleared inbound');
+	chrome.storage.local.get(null, function (local) {
+		chrome.storage.sync.get(local.uid, function (store) {
+			store[local.uid].tabs.inbound = [];
+			chrome.storage.sync.set(store, function () {
+				// Success
 			});
 		});
 	});
 }
 
+/**
+ * Listen for new inbound URLs
+ */
 chrome.storage.onChanged.addListener(function (changes, areaName) {
-	console.log('change heard');
-	chrome.storage.sync.get(storage.local.uid, function (store) {
-		var urls = _.pluck(store[storage.local.uid].tabs.inbound, 'url');
-		openTabs(urls);
-		removeInboundTabs();
+	chrome.storage.local.get(null, function (local) {
+		console.log('change heard' + areaName);
+		chrome.storage.sync.get(local.uid, function (store) {
+			var urls = _.pluck(store[local.uid].tabs.inbound, 'url');
+			openTabs(urls);
+			removeInboundTabs();
+		});
 	});
 });
-// openTab('http://twitter.com')
-// chrome.browserAction.setBadgeText({text: '\'Allo'});
 
-// console.log('\'Allo \'Allo! Event Page for Browser Action');
-
-// var storageSample = {
-// 	123: {
-// 		name: 'Matrix',
-// 		tabs: {
-// 			inbound: [
-// 				{
-// 					url: 'http: //google.com'
-// 				}
-// 			],
-// 			suspended: [
-// 				{
-// 					url: 'http: //maps.google.com'
-// 				}
-// 			]
-// 		}
-// 	},
-// 	234: {
-// 		name: 'Matrixy',
-// 		tabs: {
-// 			inbound: [
-// 				{
-// 					url: 'http: //google.com'
-// 				}
-// 			],
-// 			suspended: [
-// 				{
-// 					url: 'http: //maps.google.com'
-// 				}
-// 			]
-// 		}
-// 	}
-// };
-
-// chrome.storage.sync.set(storageSample, () => {});
-
-// chrome.alarms.create({when: Date.now() + 2000});
-// chrome.alarms.onAlarm.addListener(check);
-//
+chrome.runtime.onInstalled.addListener(function () {
+	chrome.storage.local.get(null, function (local) {
+		if (typeof local.uid !== 'string') {
+			newIdentity();
+		}
+		if (typeof local.name !== 'string') {
+			var d = { 'nickname': getRandomNickname() };
+			d = d;
+		}
+	});
+});
 //# sourceMappingURL=background.js.map

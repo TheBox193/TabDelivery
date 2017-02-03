@@ -41,28 +41,22 @@ function newIdentity() {
 	chrome.storage.sync.set(syncStore);
 }
 
-// function safeGetSync (storageArea, key, callback) {
-// 	if (storageArea === 'sync') {
+/**
+ * Open single url
+ * @param  {string} url
+ */
+function openTab(url) {
+	// Split off anything after #
+	var tabURL = {
+		url: url.split('#')[0]
+	};
 
-// 	}
-// }
-
-chrome.storage.local.get(null, (local) => {
-	if(typeof local.uid !== 'string') {
-		newIdentity();
-	}
-	if (typeof local.name !== 'string') {
-		var d =  { 'nickname': getRandomNickname() };
-		d=d;
-	}
-});
-
-function check() {
-	chrome.storage.local.get(null, (local) => {
-		chrome.storage.sync.get( local.uid, function(storage) {
-			var urls = ( storage && storage.inbound ) ? storage.inbound : [];
-			openTabs(urls);
-		});
+	chrome.tabs.query(tabURL, function (tabs) {
+		if (tabs.length) {
+			chrome.tabs.update(tabs[0].id, {selected: true});
+		} else {
+			chrome.tabs.create(tabURL);
+		}
 	});
 }
 
@@ -74,22 +68,14 @@ function openTabs(urls) {
 	urls.map(openTab);
 }
 
-/**
- * Open single url
- * @param  {string} url
- */
-function openTab(url) {
-	var tabURL = {
-		url: url
-	};
-	var tab;
-
-	if (typeof tab !== 'undefined' && (tab.url === '' || tab.url === 'chrome://newtab/' || tab.url === tabURL.url)) {
-		chrome.tabs.update(null, tabURL);
-	} else {
-		chrome.tabs.create(tabURL);
-	}
-}
+// function check() {
+// 	chrome.storage.local.get(null, (local) => {
+// 		chrome.storage.sync.get( local.uid, function(storage) {
+// 			var urls = ( storage && storage.inbound ) ? storage.inbound : [];
+// 			openTabs(urls);
+// 		});
+// 	});
+// }
 
 function removeInboundTabs() {
 	chrome.storage.local.get(null, (local) => {
@@ -102,13 +88,29 @@ function removeInboundTabs() {
 	});
 }
 
+/**
+ * Listen for new inbound URLs
+ */
 chrome.storage.onChanged.addListener((changes, areaName) => {
 	chrome.storage.local.get(null, (local) => {
-		console.log('change heard');
+		console.log('change heard' + areaName);
 		chrome.storage.sync.get( local.uid, function(store) {
 			const urls = _.pluck( store[local.uid].tabs.inbound, 'url' );
 			openTabs(urls);
 			removeInboundTabs();
 		});
+	});
+});
+
+
+chrome.runtime.onInstalled.addListener(() => {
+	chrome.storage.local.get(null, (local) => {
+		if(typeof local.uid !== 'string') {
+			newIdentity();
+		}
+		if (typeof local.name !== 'string') {
+			var d =  { 'nickname': getRandomNickname() };
+			d=d;
+		}
 	});
 });

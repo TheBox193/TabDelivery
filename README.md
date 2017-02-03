@@ -5,4 +5,4 @@ Send a Tab from one signed in chrome, to another computer's chrome that is signe
 # Install
 
 Chrome Web Store: https://chrome.google.com/webstore/detail/fhbhoidanokpmijmgdojfjmefpjpiaam
-Note: Currently requires a chrome reboote. #asyc reasonse. Fix coming soon.
+Note: Currently requires a chrome reboot. #asyc reasonse. Fix coming soon.
