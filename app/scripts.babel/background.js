@@ -1,8 +1,5 @@
 'use strict';
 
-// eslint hack
-var _ = _;
-
 /**
  * Create a random token to be used
  * @return {string} Random unique token
@@ -32,11 +29,17 @@ function getRandomNickname() {
  */
 function newIdentity() {
 	const identity = { 'uid': getRandomToken(), nickname: getRandomNickname() };
+	console.log('New Identity Created:', identity);
 	chrome.storage.local.set(identity);
 
 	let syncStore = {};
-	syncStore[identity.uid] = {'name': identity.nickname, tabs:{ inbound : []}};
+	syncStore[identity.uid] = {'nickname': identity.nickname, tabs:{ inbound : []}};
 	chrome.storage.sync.set(syncStore);
+}
+
+function clearThings() {
+	chrome.storage.local.clear({});
+	chrome.storage.sync.clear({});
 }
 
 /**
@@ -90,25 +93,30 @@ function removeInboundTabs() {
  * Listen for new inbound URLs
  */
 chrome.storage.onChanged.addListener((changes, areaName) => {
+	console.log('change heard in ' + areaName);
 	chrome.storage.local.get(null, (local) => {
-		console.log('change heard' + areaName);
-		chrome.storage.sync.get( local.uid, function(store) {
-			const urls = _.pluck( store[local.uid].tabs.inbound, 'url' );
-			openTabs(urls);
-			removeInboundTabs();
-		});
+		if (areaName === 'local') {
+
+		} else if (areaName === 'sync') {
+			chrome.storage.sync.get( local.uid, function(store) {
+				const urls = _.map( store[local.uid].tabs.inbound, 'url' );
+				openTabs(urls);
+				removeInboundTabs();
+			});
+		}
 	});
 });
 
-
+/**
+ * Initial setup; Creates identity & corrects identities with no nickname
+ */
 chrome.runtime.onInstalled.addListener(() => {
+	console.log('Init...');
 	chrome.storage.local.get(null, (local) => {
 		if(typeof local.uid !== 'string') {
 			newIdentity();
+		} else if (typeof local.nickname !== 'string') {
+			chrome.storage.local.set({ 'nickname': getRandomNickname() });
 		}
-		// if (typeof local.name !== 'string') {
-		// 	var d =  { 'nickname': getRandomNickname() };
-		// 	d=d;
-		// }
 	});
 });

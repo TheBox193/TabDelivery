@@ -1,12 +1,10 @@
 {
-  "name": "delivertab",
+  "name": "tabdelivery",
   "private": true,
   "version": "0.0.0",
-  "dependencies": {
-    "lodash": "~3.10.1"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "chai": "~3.3.0",
-    "mocha": "~2.3.2"
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0"
   }
 }

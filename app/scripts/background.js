@@ -1,12 +1,10 @@
 'use strict';
 
-// eslint hack
-var _ = _;
-
 /**
  * Create a random token to be used
  * @return {string} Random unique token
  */
+
 function getRandomToken() {
 	// E.g. 8 * 32 = 256 bits token
 	var randomPool = new Uint8Array(32);
@@ -32,11 +30,17 @@ function getRandomNickname() {
  */
 function newIdentity() {
 	var identity = { 'uid': getRandomToken(), nickname: getRandomNickname() };
+	console.log('New Identity Created:', identity);
 	chrome.storage.local.set(identity);
 
 	var syncStore = {};
-	syncStore[identity.uid] = { 'name': identity.nickname, tabs: { inbound: [] } };
+	syncStore[identity.uid] = { 'nickname': identity.nickname, tabs: { inbound: [] } };
 	chrome.storage.sync.set(syncStore);
+}
+
+function clearThings() {
+	chrome.storage.local.clear({});
+	chrome.storage.sync.clear({});
 }
 
 /**
@@ -90,25 +94,28 @@ function removeInboundTabs() {
  * Listen for new inbound URLs
  */
 chrome.storage.onChanged.addListener(function (changes, areaName) {
+	console.log('change heard in ' + areaName);
 	chrome.storage.local.get(null, function (local) {
-		console.log('change heard' + areaName);
-		chrome.storage.sync.get(local.uid, function (store) {
-			var urls = _.pluck(store[local.uid].tabs.inbound, 'url');
-			openTabs(urls);
-			removeInboundTabs();
-		});
+		if (areaName === 'local') {} else if (areaName === 'sync') {
+			chrome.storage.sync.get(local.uid, function (store) {
+				var urls = _.map(store[local.uid].tabs.inbound, 'url');
+				openTabs(urls);
+				removeInboundTabs();
+			});
+		}
 	});
 });
 
+/**
+ * Initial setup; Creates identity & corrects identities with no nickname
+ */
 chrome.runtime.onInstalled.addListener(function () {
+	console.log('Init...');
 	chrome.storage.local.get(null, function (local) {
 		if (typeof local.uid !== 'string') {
 			newIdentity();
+		} else if (typeof local.nickname !== 'string') {
+			chrome.storage.local.set({ 'nickname': getRandomNickname() });
 		}
-		// if (typeof local.name !== 'string') {
-		// 	var d =  { 'nickname': getRandomNickname() };
-		// 	d=d;
-		// }
 	});
 });
-//# sourceMappingURL=scripts/background.js.map

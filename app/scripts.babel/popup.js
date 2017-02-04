@@ -9,13 +9,15 @@ let _ = _;
 chrome.storage.sync.get(null, (store) => {
 	chrome.storage.local.get(null, (local) => {
 		_.keys(store).forEach( (key) => {
-			if (local.uid !== key) {
+			// if (local.uid !== key) {
 				let el = document.createElement('option');
-				el.textContent = store[key].name;
+				el.textContent = store[key].nickname;
 				el.value = key;
 				destinationsEl.appendChild(el);
-			} else {
-				myNameEl.textContent = store[key].name;
+			// }
+
+			if (local.uid === key) {
+				myNameEl.textContent = store[key].nickname;
 			}
 		});
 	});
@@ -31,24 +33,27 @@ function uiDuplicate () {
 	statusEl.textContent = 'Already sent.';
 }
 
+/**
+ * Send tab to a uid
+ * @param  {Object} tab Tab Object
+ * @param  {String} uid Destination for tab to be sent to
+ */
 function sendTab(tab, uid) {
 	chrome.storage.sync.get(uid, (store) => {
-		// const newStore = _.clone(store);
 
 		// Check if tab is already inbound (by url)
-		const urls = _.pluck( store[ uid ].tabs.inbound, 'url');
-		if ( _.contains(urls, tab.url) ) {
+		const existingUrls = _.map( store[ uid ].tabs.inbound, 'url');
+		if ( _.includes(existingUrls, tab.url) ) {
 			uiDuplicate();
 		} else {
 
-			const newInbound = _.clone( store[uid].tabs.inbound );
-			newInbound.push( tab );
+			// const newInbound = _.clone( store[uid].tabs.inbound );
+			store[uid].tabs.inbound.push( tab );
 
-			store[ uid ].tabs.inbound = newInbound;
+			// store[ uid ].tabs.inbound = newInbound;
 			chrome.storage.sync.set(store, () => {
-
 				chrome.storage.sync.get(uid, (store) => {
-					console.log(store);
+					console.log('Store updated:', store);
 					uiSuccess();
 				});
 			});

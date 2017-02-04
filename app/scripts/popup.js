@@ -1,4 +1,5 @@
 'use strict';
+
 var destinationsEl = document.getElementById('destinations');
 var myNameEl = document.getElementById('myName');
 var statusEl = document.getElementById('status');
@@ -9,13 +10,15 @@ var _ = _;
 chrome.storage.sync.get(null, function (store) {
 	chrome.storage.local.get(null, function (local) {
 		_.keys(store).forEach(function (key) {
-			if (local.uid !== key) {
-				var el = document.createElement('option');
-				el.textContent = store[key].name;
-				el.value = key;
-				destinationsEl.appendChild(el);
-			} else {
-				myNameEl.textContent = store[key].name;
+			// if (local.uid !== key) {
+			var el = document.createElement('option');
+			el.textContent = store[key].nickname;
+			el.value = key;
+			destinationsEl.appendChild(el);
+			// }
+
+			if (local.uid === key) {
+				myNameEl.textContent = store[key].nickname;
 			}
 		});
 	});
@@ -30,24 +33,27 @@ function uiDuplicate() {
 	statusEl.textContent = 'Already sent.';
 }
 
+/**
+ * Send tab to a uid
+ * @param  {Object} tab Tab Object
+ * @param  {String} uid Destination for tab to be sent to
+ */
 function sendTab(tab, uid) {
 	chrome.storage.sync.get(uid, function (store) {
-		// const newStore = _.clone(store);
 
 		// Check if tab is already inbound (by url)
-		var urls = _.pluck(store[uid].tabs.inbound, 'url');
-		if (_.contains(urls, tab.url)) {
+		var existingUrls = _.map(store[uid].tabs.inbound, 'url');
+		if (_.includes(existingUrls, tab.url)) {
 			uiDuplicate();
 		} else {
 
-			var newInbound = _.clone(store[uid].tabs.inbound);
-			newInbound.push(tab);
+			// const newInbound = _.clone( store[uid].tabs.inbound );
+			store[uid].tabs.inbound.push(tab);
 
-			store[uid].tabs.inbound = newInbound;
+			// store[ uid ].tabs.inbound = newInbound;
 			chrome.storage.sync.set(store, function () {
-
 				chrome.storage.sync.get(uid, function (store) {
-					console.log(store);
+					console.log('Store updated:', store);
 					uiSuccess();
 				});
 			});
@@ -69,4 +75,3 @@ document.addEventListener('DOMContentLoaded', function () {
 		handleSendClick(ev);
 	});
 });
-//# sourceMappingURL=popup.js.map
