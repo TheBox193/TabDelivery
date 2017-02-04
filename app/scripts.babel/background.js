@@ -23,9 +23,7 @@ function getRandomToken() {
  * @return {string} Default Nickname
  */
 function getRandomNickname() {
-	const dict = ['Monkey', 'Cat', 'Dog', 'Horse', 'Rabbit', 'Squirrel', 'Owl', 'Deer', 'Hedgehog', 'Sheep', 'Fox'];
-	const index = Math.round(Math.random()*10);
-	return dict[index];
+	return _.sample(['Monkey', 'Cat', 'Dog', 'Horse', 'Rabbit', 'Squirrel', 'Owl', 'Deer', 'Hedgehog', 'Sheep', 'Fox']);
 }
 
 /**
@@ -33,7 +31,7 @@ function getRandomNickname() {
  * @return {[type]} [description]
  */
 function newIdentity() {
-	const identity = { 'uid': getRandomToken() };
+	const identity = { 'uid': getRandomToken(), nickname: getRandomNickname() };
 	chrome.storage.local.set(identity);
 
 	let syncStore = {};
@@ -108,9 +106,9 @@ chrome.runtime.onInstalled.addListener(() => {
 		if(typeof local.uid !== 'string') {
 			newIdentity();
 		}
-		if (typeof local.name !== 'string') {
-			var d =  { 'nickname': getRandomNickname() };
-			d=d;
-		}
+		// if (typeof local.name !== 'string') {
+		// 	var d =  { 'nickname': getRandomNickname() };
+		// 	d=d;
+		// }
 	});
 });

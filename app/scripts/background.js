@@ -23,9 +23,7 @@ function getRandomToken() {
  * @return {string} Default Nickname
  */
 function getRandomNickname() {
-	var dict = ['Monkey', 'Cat', 'Dog', 'Horse', 'Rabbit', 'Squirrel', 'Owl', 'Deer', 'Hedgehog', 'Sheep', 'Fox'];
-	var index = Math.round(Math.random() * 10);
-	return dict[index];
+	return _.sample(['Monkey', 'Cat', 'Dog', 'Horse', 'Rabbit', 'Squirrel', 'Owl', 'Deer', 'Hedgehog', 'Sheep', 'Fox']);
 }
 
 /**
@@ -33,7 +31,7 @@ function getRandomNickname() {
  * @return {[type]} [description]
  */
 function newIdentity() {
-	var identity = { 'uid': getRandomToken() };
+	var identity = { 'uid': getRandomToken(), nickname: getRandomNickname() };
 	chrome.storage.local.set(identity);
 
 	var syncStore = {};
@@ -107,10 +105,10 @@ chrome.runtime.onInstalled.addListener(function () {
 		if (typeof local.uid !== 'string') {
 			newIdentity();
 		}
-		if (typeof local.name !== 'string') {
-			var d = { 'nickname': getRandomNickname() };
-			d = d;
-		}
+		// if (typeof local.name !== 'string') {
+		// 	var d =  { 'nickname': getRandomNickname() };
+		// 	d=d;
+		// }
 	});
 });
-//# sourceMappingURL=background.js.map
+//# sourceMappingURL=scripts/background.js.map
