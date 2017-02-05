@@ -5,6 +5,8 @@
  * @return {string} Random unique token
  */
 
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function getRandomToken() {
 	// E.g. 8 * 32 = 256 bits token
 	var randomPool = new Uint8Array(32);
@@ -21,7 +23,7 @@ function getRandomToken() {
  * @return {string} Default Nickname
  */
 function getRandomNickname() {
-	return _.sample(['Monkey', 'Cat', 'Dog', 'Horse', 'Rabbit', 'Squirrel', 'Owl', 'Deer', 'Hedgehog', 'Sheep', 'Fox']);
+	return _.sample(['Monkey', 'Cat', 'Dog', 'Horse', 'Rabbit', 'Squirrel', 'Owl', 'Deer', 'Hedgehog', 'Sheep', 'Fox', 'Lion', 'Penguin', 'Seal']);
 }
 
 /**
@@ -29,13 +31,32 @@ function getRandomNickname() {
  * @return {[type]} [description]
  */
 function newIdentity() {
-	var identity = { 'uid': getRandomToken(), nickname: getRandomNickname() };
+	var identity = { 'uid': getRandomToken() };
 	console.log('New Identity Created:', identity);
 	chrome.storage.local.set(identity);
 
 	var syncStore = {};
-	syncStore[identity.uid] = { 'nickname': identity.nickname, tabs: { inbound: [] } };
+	syncStore[identity.uid] = { nickname: getRandomNickname(), tabs: { inbound: [] } };
 	chrome.storage.sync.set(syncStore);
+}
+
+function getUID(fn) {
+	chrome.storage.local.get('uid', function (local) {
+		fn(_.get(local, 'uid'));
+	});
+}
+
+function getStoreByUID(uid, fn) {
+	chrome.storage.sync.get(uid, function (store) {
+		fn(_.get(store, uid));
+	});
+}
+
+function setStoreByUID(uid, obj) {
+	var fn = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function () {};
+
+	chrome.storage.sync.set(_defineProperty({}, uid, obj));
+	fn();
 }
 
 function clearThings() {
@@ -70,22 +91,11 @@ function openTabs(urls) {
 	urls.map(openTab);
 }
 
-// function check() {
-// 	chrome.storage.local.get(null, (local) => {
-// 		chrome.storage.sync.get( local.uid, function(storage) {
-// 			var urls = ( storage && storage.inbound ) ? storage.inbound : [];
-// 			openTabs(urls);
-// 		});
-// 	});
-// }
-
 function removeInboundTabs() {
-	chrome.storage.local.get(null, function (local) {
-		chrome.storage.sync.get(local.uid, function (store) {
-			store[local.uid].tabs.inbound = [];
-			chrome.storage.sync.set(store, function () {
-				// Success
-			});
+	getUID(function (uid) {
+		getStoreByUID(uid, function (store) {
+			store.tabs.inbound = [];
+			setStoreByUID(uid, store);
 		});
 	});
 }
@@ -95,10 +105,10 @@ function removeInboundTabs() {
  */
 chrome.storage.onChanged.addListener(function (changes, areaName) {
 	console.log('change heard in ' + areaName);
-	chrome.storage.local.get(null, function (local) {
-		if (areaName === 'local') {} else if (areaName === 'sync') {
-			chrome.storage.sync.get(local.uid, function (store) {
-				var urls = _.map(store[local.uid].tabs.inbound, 'url');
+	getUID(function (uid) {
+		if (areaName === 'sync' && _.keys(changes)[0] === uid) {
+			getStoreByUID(uid, function (store) {
+				var urls = _.map(store.tabs.inbound, 'url');
 				openTabs(urls);
 				removeInboundTabs();
 			});
@@ -106,16 +116,30 @@ chrome.storage.onChanged.addListener(function (changes, areaName) {
 	});
 });
 
+chrome.runtime.onMessage.addListener(function (message, MessageSender, sendResponse) {
+	debugger;
+	if (message.nickname) {
+		(function () {
+			var nickname = message.nickname;
+			getUID(function (uid) {
+				getStoreByUID(uid, function (store) {
+					store.nickname = nickname;
+					setStoreByUID(uid, store);
+					sendResponse({ success: true });
+				});
+			});
+		})();
+	}
+});
+
 /**
  * Initial setup; Creates identity & corrects identities with no nickname
  */
 chrome.runtime.onInstalled.addListener(function () {
 	console.log('Init...');
-	chrome.storage.local.get(null, function (local) {
-		if (typeof local.uid !== 'string') {
+	getUID(function (uid) {
+		if (typeof uid !== 'string') {
 			newIdentity();
-		} else if (typeof local.nickname !== 'string') {
-			chrome.storage.local.set({ 'nickname': getRandomNickname() });
 		}
 	});
 });

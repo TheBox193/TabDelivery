@@ -7,5 +7,7 @@ chrome.storage.local.get(null, function (local) {
 
 nameEl.onblur = () => {
 	const nickname = nameEl.value;
-	chrome.storage.local.set({nickname});
+	chrome.runtime.sendMessage(null, {nickname}, null, (response) => {
+		console.log('success?');
+	})
 };

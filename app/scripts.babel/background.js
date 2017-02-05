@@ -20,7 +20,7 @@ function getRandomToken() {
  * @return {string} Default Nickname
  */
 function getRandomNickname() {
-	return _.sample(['Monkey', 'Cat', 'Dog', 'Horse', 'Rabbit', 'Squirrel', 'Owl', 'Deer', 'Hedgehog', 'Sheep', 'Fox']);
+	return _.sample(['Monkey', 'Cat', 'Dog', 'Horse', 'Rabbit', 'Squirrel', 'Owl', 'Deer', 'Hedgehog', 'Sheep', 'Fox', 'Lion', 'Penguin', 'Seal']);
 }
 
 /**
@@ -28,13 +28,30 @@ function getRandomNickname() {
  * @return {[type]} [description]
  */
 function newIdentity() {
-	const identity = { 'uid': getRandomToken(), nickname: getRandomNickname() };
+	const identity = { 'uid': getRandomToken() };
 	console.log('New Identity Created:', identity);
 	chrome.storage.local.set(identity);
 
 	let syncStore = {};
-	syncStore[identity.uid] = {'nickname': identity.nickname, tabs:{ inbound : []}};
+	syncStore[identity.uid] = {nickname: getRandomNickname(), tabs:{ inbound : []}};
 	chrome.storage.sync.set(syncStore);
+}
+
+function getUID(fn) {
+	chrome.storage.local.get('uid', (local) => {
+		fn( _.get(local, 'uid') );
+	});
+}
+
+function getStoreByUID(uid, fn) {
+	chrome.storage.sync.get( uid, (store) => {
+		fn( _.get(store, uid) );
+	});
+}
+
+function setStoreByUID(uid, obj, fn = () => {}) {
+	chrome.storage.sync.set({[uid]: obj});
+	fn();
 }
 
 function clearThings() {
@@ -69,22 +86,11 @@ function openTabs(urls) {
 	urls.map(openTab);
 }
 
-// function check() {
-// 	chrome.storage.local.get(null, (local) => {
-// 		chrome.storage.sync.get( local.uid, function(storage) {
-// 			var urls = ( storage && storage.inbound ) ? storage.inbound : [];
-// 			openTabs(urls);
-// 		});
-// 	});
-// }
-
 function removeInboundTabs() {
-	chrome.storage.local.get(null, (local) => {
-		chrome.storage.sync.get( local.uid, function(store) {
-			store[ local.uid ].tabs.inbound = [];
-			chrome.storage.sync.set(store, () => {
-				// Success
-			});
+	getUID( (uid) => {
+		getStoreByUID( uid, (store) => {
+			store.tabs.inbound = [];
+			setStoreByUID(uid, store);
 		});
 	});
 }
@@ -94,12 +100,10 @@ function removeInboundTabs() {
  */
 chrome.storage.onChanged.addListener((changes, areaName) => {
 	console.log('change heard in ' + areaName);
-	chrome.storage.local.get(null, (local) => {
-		if (areaName === 'local') {
-
-		} else if (areaName === 'sync') {
-			chrome.storage.sync.get( local.uid, function(store) {
-				const urls = _.map( store[local.uid].tabs.inbound, 'url' );
+	getUID( (uid) => {
+		if (areaName === 'sync' && _.keys(changes)[0] === uid) {
+			getStoreByUID( uid, function(store) {
+				const urls = _.map( store.tabs.inbound, 'url' );
 				openTabs(urls);
 				removeInboundTabs();
 			});
@@ -107,16 +111,28 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 	});
 });
 
+chrome.runtime.onMessage.addListener((message, MessageSender, sendResponse) => {
+	debugger;
+	if (message.nickname) {
+		const nickname = message.nickname;
+		getUID( (uid) => {
+			getStoreByUID(uid, (store) => {
+				store.nickname = nickname;
+				setStoreByUID(uid, store);
+				sendResponse({success: true});
+			});
+		});
+	}
+});
+
 /**
  * Initial setup; Creates identity & corrects identities with no nickname
  */
 chrome.runtime.onInstalled.addListener(() => {
 	console.log('Init...');
-	chrome.storage.local.get(null, (local) => {
-		if(typeof local.uid !== 'string') {
+	getUID( (uid) => {
+		if(typeof uid !== 'string') {
 			newIdentity();
-		} else if (typeof local.nickname !== 'string') {
-			chrome.storage.local.set({ 'nickname': getRandomNickname() });
 		}
 	});
 });

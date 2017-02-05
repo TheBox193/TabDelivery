@@ -2,6 +2,7 @@
 const destinationsEl = document.getElementById('destinations');
 const myNameEl = document.getElementById('myName');
 const statusEl = document.getElementById('status');
+const settingsEl = document.getElementById('settings');
 
 // eslint hack
 let _ = _;
@@ -46,11 +47,8 @@ function sendTab(tab, uid) {
 		if ( _.includes(existingUrls, tab.url) ) {
 			uiDuplicate();
 		} else {
-
-			// const newInbound = _.clone( store[uid].tabs.inbound );
 			store[uid].tabs.inbound.push( tab );
 
-			// store[ uid ].tabs.inbound = newInbound;
 			chrome.storage.sync.set(store, () => {
 				chrome.storage.sync.get(uid, (store) => {
 					console.log('Store updated:', store);
@@ -74,5 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
     link.addEventListener('click', (ev) => {
         handleSendClick(ev);
     });
+    settingsEl.addEventListener('click', (ev) => {
+    	chrome.runtime.openOptionsPage();
+    })
 });
 
