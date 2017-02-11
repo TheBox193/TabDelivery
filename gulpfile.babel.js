@@ -4,6 +4,8 @@ import gulpLoadPlugins from 'gulp-load-plugins';
 import del from 'del';
 import runSequence from 'run-sequence';
 import {stream as wiredep} from 'wiredep';
+import jeditor from 'gulp-json-editor';
+import Version from 'maniver';
 
 const $ = gulpLoadPlugins();
 
@@ -61,10 +63,28 @@ gulp.task('html',  () => {
     .pipe(gulp.dest('dist'));
 });
 
-gulp.task('chromeManifest', () => {
+gulp.task('versionBump', () => {
+  var manifest = require('./app/manifest.json');
+  var manifestDist = require('./dist/manifest.json');
+
+  // Only bump if no manual version was entered into the manifest.json
+  if (manifest.version === manifestDist.version) {
+    const version = new Version( manifest.version );
+    version.maintenance();
+
+    return gulp.src("./app/manifest.json")
+    .pipe(jeditor({
+      'version': version.version()
+    }))
+    .pipe(gulp.dest("app"));
+  }
+});
+
+gulp.task('chromeManifest', ['versionBump'], () => {
+  var manifest = require('./dist/manifest.json');
+
   return gulp.src('app/manifest.json')
     .pipe($.chromeManifest({
-      buildnumber: true,
       background: {
         target: 'scripts/background.js',
         exclude: [
@@ -76,18 +96,6 @@ gulp.task('chromeManifest', () => {
   .pipe($.if('*.js', $.sourcemaps.init()))
   .pipe($.if('*.js', $.uglify()))
   .pipe($.if('*.js', $.sourcemaps.write('.')))
-  .pipe(gulp.dest('dist'));
-});
-
-gulp.task('man', () => {
-  return gulp.src('app/manifest.json')
-    .pipe($.chromeManifest({
-      buildnumber: true,
-      indentSize: 2,
-      exclude: [
-        'scripts/chromereload.js'
-      ]
-  }))
   .pipe(gulp.dest('dist'));
 });
 

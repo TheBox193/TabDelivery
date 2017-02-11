@@ -43,5 +43,8 @@
         "single"
       ]
     }
+  },
+  "dependencies": {
+    "gulp-json-editor": "^2.2.1"
   }
 }
